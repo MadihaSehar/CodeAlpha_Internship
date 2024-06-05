@@ -1,0 +1,54 @@
+
+import subprocess
+import sys
+
+# Function to install scapy if not installed
+def install_scapy():
+    try:
+        import scapy
+    except ImportError:
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "scapy"])
+        import scapy
+
+install_scapy()
+from scapy.all import *
+
+# Callback function to handle packets
+def packet_callback(packet):
+    if packet.haslayer(Ether):
+        eth = packet[Ether]
+        print(f'\nEthernet Frame: Destination: {eth.dst}, Source: {eth.src}, Type: {eth.type}')
+
+        if eth.type == 0x0800:  # IPv4
+            ip = packet[IP]
+            print(f'IPv4 Packet: Version: {ip.version}, Header Length: {ip.ihl * 4}, TTL: {ip.ttl}')
+            print(f'Protocol: {ip.proto}, Source: {ip.src}, Target: {ip.dst}')
+
+            if ip.proto == 1:  # ICMP
+                icmp = packet[ICMP]
+                print(f'ICMP Packet: Type: {icmp.type}, Code: {icmp.code}, Checksum: {icmp.chksum}')
+
+            elif ip.proto == 6:  # TCP
+                tcp = packet[TCP]
+                print(f'TCP Segment: Source Port: {tcp.sport}, Destination Port: {tcp.dport}')
+                print(f'Sequence: {tcp.seq}, Acknowledgment: {tcp.ack}')
+                print(f'Flags: URG: {tcp.flags.U}, ACK: {tcp.flags.A}, PSH: {tcp.flags.P}, '
+                      f'RST: {tcp.flags.R}, SYN: {tcp.flags.S}, FIN: {tcp.flags.F}')
+
+            elif ip.proto == 17:  # UDP
+                udp = packet[UDP]
+                print(f'UDP Segment: Source Port: {udp.sport}, Destination Port: {udp.dport}, Length: {udp.len}')
+
+        else:
+            print('Other Ethernet Type:', eth.type)
+
+# Main function
+def main():
+    print("Starting packet capture...")
+    sniff(prn=packet_callback, store=0)  # prn specifies the callback function to handle packets, store=0 means not to store packets in memory
+
+if __name__ == "__main__":
+    main()
+
+
+
